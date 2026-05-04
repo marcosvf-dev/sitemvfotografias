@@ -1,0 +1,145 @@
+{
+  "hero": {
+    "pre": "Fotografia de Casamento · Divinópolis, MG",
+    "title": "Eternizando\ncada momento\nespecial",
+    "desc": "Mais de uma década capturando a emoção, beleza e amor dos casamentos em Minas Gerais. Cada foto conta uma história única.",
+    "badge_num": "+248",
+    "badge_txt": "casamentos realizados",
+    "bg_image": "/img/hero.jpg"
+  },
+  "about": {
+    "image": "/img/pw2.jpg",
+    "tag": "\"A arte de eternizar o amor\"",
+    "p1": "Com mais de 12 anos de experiência em fotografia de casamento, trago uma abordagem cinematográfica e emocional para cada cerimônia. Não apenas fotografo — eu conto a sua história.",
+    "p2": "Baseado em Divinópolis, já percorri Minas Gerais e outros estados, capturando a essência de cada casal com luz natural e técnica refinada.",
+    "stats": [
+      {"n": "12+", "l": "anos de experiência"},
+      {"n": "248", "l": "casamentos"},
+      {"n": "MG", "l": "e todo o Brasil"},
+      {"n": "100%", "l": "dedicação"}
+    ]
+  },
+  "contact": {
+    "local": "Divinópolis, Minas Gerais",
+    "wpp_display": "(37) 99999-9999",
+    "wpp_link": "5537999999999",
+    "email": "contato@mvfotografia.com.br",
+    "instagram": "https://instagram.com/mvfotografia",
+    "youtube": "",
+    "desc": "Datas se esgotam rapidamente! Entre em contato para verificar disponibilidade e receber um orçamento personalizado."
+  },
+  "galleries": [
+    {
+      "id": "cer",
+      "name": "Cerimônia",
+      "photos": [
+        {"file": "/img/g1.jpg", "title": "Noivo na Igreja", "cat": "cer"},
+        {"file": "/img/g2.jpg", "title": "O Beijo", "cat": "cer"},
+        {"file": "/img/g3.jpg", "title": "Saída dos Padrinhos", "cat": "cer"},
+        {"file": "/img/g4.jpg", "title": "O Grande Beijo", "cat": "cer"}
+      ]
+    },
+    {
+      "id": "festa",
+      "name": "Festa",
+      "photos": [
+        {"file": "/img/g5.jpg", "title": "Celebração", "cat": "festa"},
+        {"file": "/img/g6.jpg", "title": "Momentos da Festa", "cat": "festa"},
+        {"file": "/img/g7.jpg", "title": "Alegria", "cat": "festa"}
+      ]
+    },
+    {
+      "id": "pw",
+      "name": "Pré-Wedding",
+      "photos": [
+        {"file": "/img/pw1.jpg", "title": "Amor ao Ar Livre", "cat": "pw"},
+        {"file": "/img/pw2.jpg", "title": "Momento Íntimo", "cat": "pw"},
+        {"file": "/img/pw3.jpg", "title": "Cumplicidade", "cat": "pw"}
+      ]
+    }
+  ],
+  "services": [
+    {
+      "num": "01",
+      "name": "Casamento Completo",
+      "desc": "Cobertura total do seu dia especial, do making-of à festa, com edição cinematográfica e entrega em alta resolução.",
+      "items": ["Making-of noiva e noivo", "Cerimônia completa", "Sessão de casal", "Recepção e festa", "Álbum impresso premium"]
+    },
+    {
+      "num": "02",
+      "name": "Pré-Wedding",
+      "desc": "Sessão fotográfica em locações especiais para eternizar o amor do casal antes do grande dia.",
+      "items": ["Até 4 horas de sessão", "Locação outdoor ou indoor", "Edição artística premium", "150+ fotos editadas", "Entrega digital"]
+    },
+    {
+      "num": "03",
+      "name": "Foto + Vídeo",
+      "desc": "Pacote completo combinando fotografia e cinematografia para uma memória completa e emocionante.",
+      "items": ["Fotografia completa", "Filme cinematográfico", "Teaser 2-3 minutos", "Drone (conforme local)", "Álbum + DVD especial"]
+    }
+  ],
+  "packages": [
+    {
+      "id": "p1",
+      "name": "Essencial",
+      "value": "3.500",
+      "period": "cerimônia + festa · até 8h",
+      "featured": false,
+      "items": [
+        {"text": "Cobertura de 8 horas", "active": true},
+        {"text": "300 fotos editadas", "active": true},
+        {"text": "Entrega em 30 dias", "active": true},
+        {"text": "Galeria online privada", "active": true},
+        {"text": "Making-of", "active": false},
+        {"text": "Álbum impresso", "active": false}
+      ]
+    },
+    {
+      "id": "p2",
+      "name": "Premium",
+      "value": "6.500",
+      "period": "dia completo · até 12h",
+      "featured": true,
+      "items": [
+        {"text": "Cobertura de 12 horas", "active": true},
+        {"text": "500+ fotos editadas", "active": true},
+        {"text": "Making-of incluso", "active": true},
+        {"text": "Entrega em 20 dias", "active": true},
+        {"text": "Galeria online privada", "active": true},
+        {"text": "Álbum 30x30 impresso", "active": true}
+      ]
+    },
+    {
+      "id": "p3",
+      "name": "Cinematográfico",
+      "value": "11.000",
+      "period": "foto + vídeo · dia completo",
+      "featured": false,
+      "items": [
+        {"text": "Foto + Vídeo completo", "active": true},
+        {"text": "Filme cinematográfico", "active": true},
+        {"text": "Teaser para redes sociais", "active": true},
+        {"text": "Drone incluso", "active": true},
+        {"text": "Álbum premium 40x40", "active": true},
+        {"text": "Entrega prioritária 15 dias", "active": true}
+      ]
+    }
+  ],
+  "testimonials": [
+    {
+      "text": "O fotógrafo capturou cada momento com uma sensibilidade incrível. As fotos ficaram lindíssimas e nos emocionamos ao ver o resultado. Superou todas as expectativas!",
+      "name": "Ana & Rafael",
+      "date": "Março 2024 · Divinópolis"
+    },
+    {
+      "text": "Contratamos o pacote foto e vídeo e foi a melhor decisão. O filme ficou cinematográfico de verdade. Toda nossa família chorou ao assistir!",
+      "name": "Juliana & Carlos",
+      "date": "Janeiro 2024 · BH"
+    },
+    {
+      "text": "Profissional dedicado, discreto e talentoso. Nem percebemos a câmera durante a cerimônia, mas as fotos contam cada detalhe com perfeição.",
+      "name": "Pedro & Letícia",
+      "date": "Novembro 2023 · Divinópolis"
+    }
+  ]
+}

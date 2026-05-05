@@ -23,10 +23,10 @@
     "local": "Divinópolis, Minas Gerais",
     "wpp_display": "(37) 99999-9999",
     "wpp_link": "5537999999999",
-    "email": "contato@mvfotografia.com.br",
+    "email": "marcosviniciusfotografo@gmail.com",
     "instagram": "https://instagram.com/mvfotografia",
     "youtube": "",
-    "desc": "Datas se esgotam rapidamente! Entre em contato para verificar disponibilidade e receber um orçamento personalizado."
+    "desc": "Datas se esgotam rapidamente! Entre em contato para verificar disponibilidade."
   },
   "galleries": [
     {
@@ -58,6 +58,43 @@
       ]
     }
   ],
+  "albums": [
+    {
+      "title": "Casamento ao Ar Livre",
+      "date": "Março 2024",
+      "local": "Divinópolis, MG",
+      "cover": "/img/hero.jpg",
+      "photos": [
+        {"file": "/img/hero.jpg", "title": "Cerimônia ao ar livre"},
+        {"file": "/img/g2.jpg", "title": "O primeiro beijo"},
+        {"file": "/img/g3.jpg", "title": "Com os padrinhos"},
+        {"file": "/img/g4.jpg", "title": "O casal"}
+      ]
+    },
+    {
+      "title": "Cerimônia na Igreja",
+      "date": "Janeiro 2024",
+      "local": "Divinópolis, MG",
+      "cover": "/img/g4.jpg",
+      "photos": [
+        {"file": "/img/g1.jpg", "title": "Noivo aguardando"},
+        {"file": "/img/g2.jpg", "title": "Momento do beijo"},
+        {"file": "/img/g3.jpg", "title": "Saída triunfal"},
+        {"file": "/img/g4.jpg", "title": "Registro do casal"}
+      ]
+    },
+    {
+      "title": "Pré-Wedding no Campo",
+      "date": "Novembro 2023",
+      "local": "Região de Divinópolis",
+      "cover": "/img/pw1.jpg",
+      "photos": [
+        {"file": "/img/pw1.jpg", "title": "Casal no jardim"},
+        {"file": "/img/pw2.jpg", "title": "Momento íntimo"},
+        {"file": "/img/pw3.jpg", "title": "Entre as folhas"}
+      ]
+    }
+  ],
   "services": [
     {
       "num": "01",
@@ -80,11 +117,8 @@
   ],
   "packages": [
     {
-      "id": "p1",
-      "name": "Essencial",
-      "value": "3.500",
-      "period": "cerimônia + festa · até 8h",
-      "featured": false,
+      "id": "p1", "name": "Essencial", "value": "3.500",
+      "period": "cerimônia + festa · até 8h", "featured": false,
       "items": [
         {"text": "Cobertura de 8 horas", "active": true},
         {"text": "300 fotos editadas", "active": true},
@@ -95,11 +129,8 @@
       ]
     },
     {
-      "id": "p2",
-      "name": "Premium",
-      "value": "6.500",
-      "period": "dia completo · até 12h",
-      "featured": true,
+      "id": "p2", "name": "Premium", "value": "6.500",
+      "period": "dia completo · até 12h", "featured": true,
       "items": [
         {"text": "Cobertura de 12 horas", "active": true},
         {"text": "500+ fotos editadas", "active": true},
@@ -110,11 +141,8 @@
       ]
     },
     {
-      "id": "p3",
-      "name": "Cinematográfico",
-      "value": "11.000",
-      "period": "foto + vídeo · dia completo",
-      "featured": false,
+      "id": "p3", "name": "Cinematográfico", "value": "11.000",
+      "period": "foto + vídeo · dia completo", "featured": false,
       "items": [
         {"text": "Foto + Vídeo completo", "active": true},
         {"text": "Filme cinematográfico", "active": true},
@@ -127,16 +155,19 @@
   ],
   "testimonials": [
     {
+      "photo": "/img/hero.jpg",
       "text": "O fotógrafo capturou cada momento com uma sensibilidade incrível. As fotos ficaram lindíssimas e nos emocionamos ao ver o resultado. Superou todas as expectativas!",
       "name": "Ana & Rafael",
       "date": "Março 2024 · Divinópolis"
     },
     {
+      "photo": "/img/g4.jpg",
       "text": "Contratamos o pacote foto e vídeo e foi a melhor decisão. O filme ficou cinematográfico de verdade. Toda nossa família chorou ao assistir!",
       "name": "Juliana & Carlos",
       "date": "Janeiro 2024 · BH"
     },
     {
+      "photo": "/img/pw1.jpg",
       "text": "Profissional dedicado, discreto e talentoso. Nem percebemos a câmera durante a cerimônia, mas as fotos contam cada detalhe com perfeição.",
       "name": "Pedro & Letícia",
       "date": "Novembro 2023 · Divinópolis"

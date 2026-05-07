@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>MV Fotografia | Fotógrafo de Casamento em Divinópolis e Minas Gerais</title>
 <meta name="description" content="MV Fotografia — fotógrafo especialista em casamentos em Divinópolis, Minas Gerais. Mais de 12 anos eternizando histórias com sensibilidade e qualidade cinematográfica.">
 <meta name="keywords" content="fotógrafo casamento Divinópolis, fotógrafo Divinópolis MG, fotógrafo casamento Minas Gerais, MV Fotografia, fotografia pre wedding Divinópolis, fotógrafo profissional Divinópolis, eternizando histórias">
@@ -23,6 +23,11 @@
 <div id="progress"></div>
 <div class="cursor-dot" id="cur"></div>
 <div class="cursor-ring" id="curR"></div>
+
+<button class="theme-toggle" id="themeToggle" onclick="toggleTheme()" aria-label="Alternar tema">
+  <span id="themeIcon">🌙</span>
+  <span class="tt-label" id="themeLabel">escuro</span>
+</button>
 
 <div id="loader">
   <img src="/img/logo.png" alt="MV Fotografia" class="l-logo">
@@ -49,8 +54,9 @@
 </nav>
 
 <section id="hero">
-  <div class="hero-bg" id="hero-bg"></div>
+  <div id="hero-slides"></div>
   <div class="hero-particles" id="particles"></div>
+  <div class="hero-dots" id="hero-dots"></div>
   <div class="hero-content">
     <div class="hero-pre" id="hero-pre">Fotografia de Casamento · Divinópolis, MG</div>
     <h1 class="hero-title" id="hero-title">Eternizando<br>cada <em>momento</em><br>especial</h1>
@@ -59,10 +65,6 @@
       <a href="#portfolio" class="btn-pri">Ver portfólio</a>
       <a href="#contact" class="btn-ghost">Agendar sessão</a>
     </div>
-  </div>
-  <div class="hero-badge">
-    <div class="n" id="hero-num">+248</div>
-    <div class="t">casamentos realizados</div>
   </div>
   <div class="hero-scroll"><div class="scroll-line"></div>scroll</div>
 </section>
@@ -145,7 +147,7 @@
 </section>
 
 <div id="album-page">
-  <div class="ap-header" id="ap-header">
+  <div class="ap-header">
     <button class="ap-back" onclick="closeAlbum()">← Voltar</button>
     <div class="ap-date" id="ap-date"></div>
     <h2 class="ap-title" id="ap-title"></h2>
@@ -167,7 +169,7 @@
 <section id="pricing">
   <div class="sec-pre reveal">Investimento</div>
   <h2 class="sec-title reveal">Pacotes <em>personalizados</em></h2>
-  <p class="reveal" style="color:var(--text2);font-size:13px;max-width:480px;line-height:1.9;margin-top:8px">Cada casamento é único. Consulte para um orçamento personalizado.</p>
+  <p class="reveal" style="color:var(--fg2);font-size:13px;max-width:480px;line-height:1.9;margin-top:8px">Cada casamento é único. Consulte para um orçamento personalizado.</p>
   <div class="pkg-grid" id="pkg-grid"></div>
 </section>
 
@@ -177,6 +179,87 @@
   <div class="sec-pre reveal">Depoimentos</div>
   <h2 class="sec-title reveal">O que dizem os <em>noivos</em></h2>
   <div class="tsti-grid" id="tsti-grid"></div>
+</section>
+
+<div class="strip"></div>
+
+<section id="historia">
+  <div class="historia-wrap">
+    <div class="sec-pre reveal" style="justify-content:center">Vamos nos conhecer</div>
+    <h2 class="sec-title reveal" style="text-align:center">A história de vocês<br>começa <em>aqui</em></h2>
+    <p class="reveal" style="text-align:center;color:var(--fg2);font-size:13px;line-height:1.9;margin-bottom:0">Conta um pouco sobre vocês — cada detalhe me ajuda a eternizar o momento perfeito</p>
+    <div class="historia-steps reveal" id="hsteps">
+      <div class="hstep active"><div class="hstep-num">1</div><div class="hstep-label">O casal</div></div>
+      <div class="hstep-line"></div>
+      <div class="hstep"><div class="hstep-num">2</div><div class="hstep-label">O casamento</div></div>
+      <div class="hstep-line"></div>
+      <div class="hstep"><div class="hstep-num">3</div><div class="hstep-label">O sonho</div></div>
+      <div class="hstep-line"></div>
+      <div class="hstep"><div class="hstep-num">4</div><div class="hstep-label">Contato</div></div>
+    </div>
+    <div class="historia-form" id="hform">
+      <div class="hf-panel active" id="hpanel-0">
+        <h3 class="hf-title">Quem são vocês? 💑</h3>
+        <p class="hf-sub">Me conta um pouco sobre o casal — quero conhecer a história de vocês!</p>
+        <div class="hfg"><label>Seu nome</label><input type="text" id="h-nome" placeholder="Seu nome completo"></div>
+        <div class="hfg"><label>Nome do(a) noivo(a)</label><input type="text" id="h-noivo" placeholder="Nome do(a) noivo(a)"></div>
+        <div class="hfg"><label>Como vocês se conheceram?</label><textarea id="h-historia" placeholder="Conta a história de vocês..."></textarea></div>
+        <div class="hf-nav"><button class="btn-hf-next" onclick="hNext(0)">Continuar →</button></div>
+      </div>
+      <div class="hf-panel" id="hpanel-1">
+        <h3 class="hf-title">O grande dia 💒</h3>
+        <p class="hf-sub">Me fala sobre o casamento que vocês sonham!</p>
+        <div class="hfg"><label>Data prevista</label><input type="date" id="h-data"></div>
+        <div class="hfg"><label>Onde será o casamento?</label><input type="text" id="h-local" placeholder="Cidade, estado ou local específico"></div>
+        <div class="hfg"><label>Que tipo de casamento?</label>
+          <div class="hf-options">
+            <button class="hf-opt" onclick="selectOpt(this,'h-tipo','Religioso')">⛪ Religioso</button>
+            <button class="hf-opt" onclick="selectOpt(this,'h-tipo','Civil')">📋 Civil</button>
+            <button class="hf-opt" onclick="selectOpt(this,'h-tipo','Ao ar livre')">🌿 Ao ar livre</button>
+            <button class="hf-opt" onclick="selectOpt(this,'h-tipo','Festa/Salão')">🥂 Festa/Salão</button>
+          </div>
+          <input type="hidden" id="h-tipo">
+        </div>
+        <div class="hf-nav">
+          <button class="btn-hf-back" onclick="hBack(1)">← Voltar</button>
+          <button class="btn-hf-next" onclick="hNext(1)">Continuar →</button>
+        </div>
+      </div>
+      <div class="hf-panel" id="hpanel-2">
+        <h3 class="hf-title">O que vocês sonham? ✨</h3>
+        <p class="hf-sub">Que tipo de fotos vocês imaginam?</p>
+        <div class="hfg"><label>Descreva as fotos dos seus sonhos</label><textarea id="h-sonho" placeholder="Fotos íntimas? Cinematográficas? Conte tudo..."></textarea></div>
+        <div class="hfg"><label>Qual pacote te interessa?</label>
+          <div class="hf-options">
+            <button class="hf-opt" onclick="selectOpt(this,'h-pacote','Essencial — R$ 3.500')">Essencial — R$ 3.500</button>
+            <button class="hf-opt" onclick="selectOpt(this,'h-pacote','Premium — R$ 6.500')">Premium — R$ 6.500</button>
+            <button class="hf-opt" onclick="selectOpt(this,'h-pacote','Cinematográfico — R$ 11.000')">Cinematográfico</button>
+            <button class="hf-opt" onclick="selectOpt(this,'h-pacote','Ainda não sei')">Ainda não sei</button>
+          </div>
+          <input type="hidden" id="h-pacote">
+        </div>
+        <div class="hf-nav">
+          <button class="btn-hf-back" onclick="hBack(2)">← Voltar</button>
+          <button class="btn-hf-next" onclick="hNext(2)">Continuar →</button>
+        </div>
+      </div>
+      <div class="hf-panel" id="hpanel-3">
+        <h3 class="hf-title">Quase lá! 📱</h3>
+        <p class="hf-sub">Como posso entrar em contato com vocês?</p>
+        <div class="hfg"><label>WhatsApp</label><input type="tel" id="h-tel" placeholder="(37) 99999-9999"></div>
+        <div class="hfg"><label>E-mail (opcional)</label><input type="email" id="h-email" placeholder="seuemail@gmail.com"></div>
+        <div class="hf-nav">
+          <button class="btn-hf-back" onclick="hBack(3)">← Voltar</button>
+          <button class="btn-hf-next" onclick="submitHistoria()">Enviar nossa história 💛</button>
+        </div>
+      </div>
+    </div>
+    <div class="hf-success" id="hf-success">
+      <div class="icon">💛</div>
+      <h3>Que história linda!</h3>
+      <p>Recebi a história de vocês e já estou ansioso para conversar!<br>Vou entrar em contato em breve pelo WhatsApp. 📱</p>
+    </div>
+  </div>
 </section>
 
 <div class="strip"></div>

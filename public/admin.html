@@ -1,127 +1,566 @@
-require('dotenv').config();
-const express = require('express');
-const multer = require('multer');
-const nodemailer = require('nodemailer');
-const cors = require('cors');
-const rateLimit = require('express-rate-limit');
-const path = require('path');
-const fs = require('fs');
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Admin — MV Fotografia</title>
+<meta name="robots" content="noindex, nofollow">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#c9a96e;--dark:#0a0806;--dark2:#120f0a;--dark3:#1c1610;--cream:#f5f0e8;--muted:#8a7d6a;--red:#e05a5a;--green:#5acd8a;--border:rgba(201,169,110,.15)}
+body{background:var(--dark2);color:var(--cream);font-family:'Montserrat',sans-serif;font-weight:300;min-height:100vh}
+#login-screen{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:24px}
+#login-screen.hide{display:none}
+.login-logo{font-family:'Cormorant Garamond',serif;font-size:28px;letter-spacing:8px;color:var(--gold)}
+.login-box{background:var(--dark3);border:.5px solid var(--border);padding:40px;width:320px;display:flex;flex-direction:column;gap:16px}
+.login-box input{background:transparent;border:none;border-bottom:.5px solid var(--border);padding:12px 0;font-size:13px;color:var(--cream);font-family:'Montserrat',sans-serif;outline:none;transition:border-color .3s}
+.login-box input:focus{border-bottom-color:var(--gold)}
+.login-box button{background:var(--gold);color:var(--dark);border:none;padding:14px;font-size:10px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:400;transition:all .3s}
+.login-box button:hover{background:#e8d5b0}
+.login-err{color:var(--red);font-size:11px;text-align:center}
+#app{display:grid;grid-template-columns:240px 1fr;min-height:100vh}
+#sidebar{background:var(--dark3);border-right:.5px solid var(--border);display:flex;flex-direction:column}
+.sb-logo{padding:20px;border-bottom:.5px solid var(--border)}
+.sb-logo img{height:36px;filter:invert(1) sepia(1) saturate(0) brightness(1.2)}
+.sb-nav{flex:1;padding:12px 0}
+.sb-item{display:flex;align-items:center;gap:10px;padding:12px 20px;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .3s;border-left:2px solid transparent}
+.sb-item:hover{color:var(--cream);background:rgba(255,255,255,.02)}
+.sb-item.on{color:var(--gold);border-left-color:var(--gold);background:rgba(201,169,110,.05)}
+.sb-item .ic{font-size:14px;width:20px;text-align:center}
+.sb-footer{padding:16px 20px;border-top:.5px solid var(--border)}
+.sb-logout{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Montserrat',sans-serif;transition:color .3s}
+.sb-logout:hover{color:var(--red)}
+#main{overflow-y:auto;max-height:100vh}
+.preview-bar{background:var(--dark3);border-bottom:.5px solid var(--border);padding:10px 28px;display:flex;align-items:center;gap:14px;font-size:10px;color:var(--muted)}
+.preview-bar a{color:var(--gold);text-decoration:none}
+.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
+.main-head{padding:22px 28px;border-bottom:.5px solid var(--border);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--dark2);z-index:10}
+.main-head h1{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold);font-weight:400}
+.main-body{padding:24px 28px}
+.tab-content{display:none}
+.tab-content.on{display:block}
+.card{background:var(--dark3);border:.5px solid var(--border);padding:20px;margin-bottom:16px}
+.card h3{font-family:'Cormorant Garamond',serif;font-size:17px;color:var(--gold);font-weight:400;margin-bottom:16px}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+.field{margin-bottom:14px}
+.field label{display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
+.field input,.field textarea,.field select{width:100%;background:rgba(255,255,255,.04);border:.5px solid var(--border);padding:9px 11px;font-size:12px;color:var(--cream);font-family:'Montserrat',sans-serif;font-weight:300;outline:none;transition:border-color .3s}
+.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--gold)}
+.field textarea{resize:vertical;min-height:70px}
+.field select{appearance:none;cursor:pointer}
+.field select option{background:var(--dark2)}
+.btn{padding:9px 20px;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:400;transition:all .3s;border:none}
+.btn-gold{background:var(--gold);color:var(--dark)}
+.btn-gold:hover{background:#e8d5b0}
+.btn-outline{background:transparent;border:.5px solid var(--border);color:var(--gold)}
+.btn-outline:hover{background:rgba(201,169,110,.1)}
+.btn-red{background:transparent;border:.5px solid rgba(224,90,90,.3);color:var(--red)}
+.btn-red:hover{background:rgba(224,90,90,.1)}
+.btn-sm{padding:5px 12px;font-size:8px}
+.btn-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.hero-photos-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:10px;margin-bottom:14px}
+.hero-photo-card{position:relative;background:var(--dark);border:.5px solid var(--border);border-radius:2px;overflow:hidden}
+.hero-photo-card img{width:100%;height:90px;object-fit:cover;display:block}
+.hero-photo-card .hp-overlay{position:absolute;inset:0;background:rgba(10,8,6,.6);opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px}
+.hero-photo-card:hover .hp-overlay{opacity:1}
+.hero-photo-card .hp-del{background:var(--red);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center}
+.hero-photo-card .hp-main{background:var(--gold);border:none;color:var(--dark);width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:10px;display:flex;align-items:center;justify-content:center}
+.hero-photo-add{border:.5px dashed var(--border);height:90px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;cursor:pointer;transition:all .3s;background:transparent}
+.hero-photo-add:hover{border-color:var(--gold);background:rgba(201,169,110,.05)}
+.hero-photo-add span{font-size:20px;color:var(--muted)}
+.hero-photo-add p{font-size:9px;letter-spacing:1px;text-transform:uppercase;color:var(--muted)}
+.hero-badge-label{font-size:9px;letter-spacing:1px;background:var(--gold);color:var(--dark);padding:2px 6px;position:absolute;bottom:4px;left:4px}
+.gal-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:.5px solid var(--border);overflow-x:auto}
+.gal-tab{padding:9px 18px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Montserrat',sans-serif;border-bottom:2px solid transparent;transition:all .3s;white-space:nowrap}
+.gal-tab.on{color:var(--gold);border-bottom-color:var(--gold)}
+.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.photo-card{background:var(--dark);border:.5px solid var(--border);position:relative}
+.photo-card img{width:100%;height:100px;object-fit:cover;display:block}
+.photo-card-body{padding:6px 8px}
+.photo-card-input{width:100%;background:transparent;border:none;border-bottom:.5px solid var(--border);padding:4px 0;font-size:10px;color:var(--cream);font-family:'Montserrat',sans-serif;outline:none}
+.photo-card-input:focus{border-bottom-color:var(--gold)}
+.photo-del{position:absolute;top:4px;right:4px;background:rgba(10,8,6,.8);border:none;color:var(--red);width:20px;height:20px;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
+.photo-card:hover .photo-del{opacity:1}
+.upload-zone{border:.5px dashed var(--border);padding:20px;text-align:center;cursor:pointer;transition:all .3s}
+.upload-zone:hover{border-color:var(--gold);background:rgba(201,169,110,.04)}
+.upload-zone input{display:none}
+.upload-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
+.upload-zone:hover .upload-label{color:var(--gold)}
+.pkg-admin-card{background:var(--dark);border:.5px solid var(--border);padding:16px;margin-bottom:12px}
+.testi-card{background:var(--dark);border:.5px solid var(--border);padding:16px;margin-bottom:12px}
+.testi-photo-prev{width:60px;height:60px;object-fit:cover;border-radius:50%;display:block;margin-bottom:8px;border:.5px solid var(--border)}
+#toast{position:fixed;bottom:20px;right:20px;background:rgba(10,8,6,.95);border:.5px solid var(--border);color:var(--gold);font-size:10px;letter-spacing:2px;padding:10px 16px;z-index:9999;transform:translateY(20px);opacity:0;transition:all .4s;pointer-events:none}
+#toast.show{transform:translateY(0);opacity:1}
+#toast.err{border-color:rgba(224,90,90,.4);color:var(--red)}
+.save-bar{position:sticky;bottom:0;background:var(--dark3);border-top:.5px solid var(--border);padding:12px 28px;display:flex;align-items:center;justify-content:space-between;z-index:5}
+.save-bar span{font-size:10px;color:var(--muted);letter-spacing:1px}
+.upload-progress{display:none;margin-top:8px;font-size:10px;color:var(--gold);letter-spacing:1px}
+</style>
+</head>
+<body>
 
-const app = express();
-const PORT = process.env.PORT || 3000;
+<div id="login-screen">
+  <div class="login-logo">MV FOTOGRAFIA</div>
+  <div style="font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--muted)">Painel Administrativo</div>
+  <div class="login-box">
+    <input type="password" id="pw-input" placeholder="Senha de acesso" autocomplete="current-password">
+    <button onclick="doLogin()">Entrar</button>
+    <div class="login-err" id="login-err"></div>
+  </div>
+</div>
 
-app.use(cors());
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+<div id="toast"></div>
 
-const contactLimit = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Muitas tentativas.' } });
-const adminLimit = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Muitas tentativas de login.' } });
+<div id="app">
+  <div id="sidebar">
+    <div class="sb-logo"><img src="/img/logo.png" alt="MV Fotografia"></div>
+    <nav class="sb-nav">
+      <div class="sb-item on" onclick="showTab('hero')"><span class="ic">🏠</span> Hero & Fotos</div>
+      <div class="sb-item" onclick="showTab('about')"><span class="ic">👤</span> Sobre</div>
+      <div class="sb-item" onclick="showTab('gallery')"><span class="ic">🖼</span> Galerias</div>
+      <div class="sb-item" onclick="showTab('services')"><span class="ic">💼</span> Serviços</div>
+      <div class="sb-item" onclick="showTab('pricing')"><span class="ic">💰</span> Pacotes</div>
+      <div class="sb-item" onclick="showTab('testimonials')"><span class="ic">💬</span> Depoimentos</div>
+      <div class="sb-item" onclick="showTab('contact')"><span class="ic">📞</span> Contato</div>
+    </nav>
+    <div class="sb-footer">
+      <a href="/" target="_blank" style="display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;margin-bottom:10px;transition:color .3s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--muted)'">↗ Ver site</a>
+      <button class="sb-logout" onclick="logout()">Sair</button>
+    </div>
+  </div>
 
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const dir = path.join(__dirname, 'public/uploads');
-    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-    cb(null, dir);
-  },
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname).toLowerCase();
-    cb(null, `photo_${Date.now()}_${Math.random().toString(36).slice(2,7)}${ext}`);
-  }
-});
-const upload = multer({
-  storage,
-  limits: { fileSize: 10 * 1024 * 1024 },
-  fileFilter: (req, file, cb) => cb(null, /jpeg|jpg|png|webp/.test(file.mimetype))
-});
+  <div id="main">
+    <div class="preview-bar">
+      <div class="status-dot"></div>
+      <span>Site online</span>
+      <a href="/" target="_blank">Abrir site ↗</a>
+    </div>
+    <div class="main-head">
+      <h1 id="tab-title">Hero & Fotos</h1>
+      <button class="btn btn-gold" onclick="saveAll()">💾 Salvar tudo</button>
+    </div>
+    <div class="main-body">
 
-const DATA_PATH = path.join(__dirname, 'data/site.json');
-function readData() { return JSON.parse(fs.readFileSync(DATA_PATH, 'utf8')); }
-function writeData(data) { fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2)); }
+      <div class="tab-content on" id="tab-hero">
+        <div class="card">
+          <h3>Fotos do slideshow (hero)</h3>
+          <p style="font-size:11px;color:var(--muted);margin-bottom:14px">Adicione até 5 fotos. A primeira é a principal. Clique ⭐ para definir como principal.</p>
+          <div class="hero-photos-grid" id="hero-photos-grid"></div>
+          <input type="file" id="hero-upload-input" accept="image/*" multiple style="display:none" onchange="uploadHeroPhotos(this)">
+          <div class="upload-progress" id="hero-upload-progress">Fazendo upload...</div>
+          <div class="btn-row">
+            <button class="btn btn-outline" onclick="document.getElementById('hero-upload-input').click()">+ Adicionar fotos do hero</button>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Textos do Hero</h3>
+          <div class="grid-2">
+            <div class="field"><label>Subtítulo</label><input id="h-pre" type="text"></div>
+            <div class="field"><label>Número destaque</label><input id="h-num" type="text"></div>
+          </div>
+          <div class="field"><label>Título</label><input id="h-title" type="text"></div>
+          <div class="field"><label>Descrição</label><textarea id="h-desc"></textarea></div>
+        </div>
+      </div>
 
-function adminAuth(req, res, next) {
-  if (req.headers['x-admin-token'] === process.env.ADMIN_PASSWORD) return next();
-  res.status(401).json({ error: 'Não autorizado' });
+      <div class="tab-content" id="tab-about">
+        <div class="card">
+          <h3>Foto do Sobre</h3>
+          <img id="about-prev" src="" style="width:200px;height:266px;object-fit:cover;display:block;margin-bottom:10px;border:.5px solid var(--border)">
+          <input type="file" id="about-upload" accept="image/*" style="display:none" onchange="uploadAboutPhoto(this)">
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('about-upload').click()">📁 Trocar foto</button>
+        </div>
+        <div class="card">
+          <h3>Textos</h3>
+          <div class="field"><label>Frase da imagem</label><input id="a-tag" type="text"></div>
+          <div class="field"><label>Parágrafo 1</label><textarea id="a-p1"></textarea></div>
+          <div class="field"><label>Parágrafo 2</label><textarea id="a-p2"></textarea></div>
+        </div>
+        <div class="card">
+          <h3>Estatísticas</h3>
+          <div id="stats-fields"></div>
+          <button class="btn btn-outline btn-sm" onclick="addStat()">+ Adicionar</button>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-gallery">
+        <div class="card">
+          <h3>Galerias</h3>
+          <div style="display:flex;gap:10px;margin-bottom:14px;flex-wrap:wrap">
+            <input type="text" id="new-gal-name" placeholder="Nome da nova galeria" style="flex:1;background:rgba(255,255,255,.04);border:.5px solid var(--border);padding:8px 11px;font-size:12px;color:var(--cream);font-family:Montserrat,sans-serif;outline:none;min-width:160px">
+            <button class="btn btn-outline btn-sm" onclick="addGallery()">+ Nova galeria</button>
+          </div>
+          <div class="gal-tabs" id="gal-tabs"></div>
+          <div class="field" style="margin-bottom:14px">
+            <label>Nome desta galeria</label>
+            <input type="text" id="gal-name-input" onchange="updateGalName(this.value)">
+          </div>
+          <div class="photo-grid" id="photo-grid"></div>
+          <div class="upload-zone" onclick="document.getElementById('gal-upload').click()">
+            <input type="file" id="gal-upload" accept="image/*" multiple onchange="handleGalUpload(this)">
+            <div class="upload-label">📁 Clique para adicionar fotos à galeria</div>
+            <div style="font-size:9px;color:var(--muted);margin-top:4px">JPG, PNG · Máx 10MB</div>
+          </div>
+          <div class="upload-progress" id="gal-upload-progress">Fazendo upload...</div>
+          <div class="btn-row" style="margin-top:12px">
+            <button class="btn btn-red btn-sm" onclick="deleteCurrentGallery()">🗑 Deletar galeria</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="tab-content" id="tab-services">
+        <div id="srv-fields"></div>
+        <button class="btn btn-outline" onclick="addService()">+ Adicionar serviço</button>
+      </div>
+
+      <div class="tab-content" id="tab-pricing">
+        <div id="pkg-fields"></div>
+        <button class="btn btn-outline" onclick="addPackage()">+ Adicionar pacote</button>
+      </div>
+
+      <div class="tab-content" id="tab-testimonials">
+        <div id="testi-fields"></div>
+        <button class="btn btn-outline" onclick="addTestimonial()">+ Adicionar depoimento</button>
+      </div>
+
+      <div class="tab-content" id="tab-contact">
+        <div class="card">
+          <h3>Informações de contato</h3>
+          <div class="grid-2">
+            <div class="field"><label>Localização</label><input id="c-local" type="text"></div>
+            <div class="field"><label>WhatsApp (com código país)</label><input id="c-wpp-link" type="text" placeholder="5537999999999"></div>
+          </div>
+          <div class="grid-2">
+            <div class="field"><label>Número exibido</label><input id="c-wpp-display" type="text"></div>
+            <div class="field"><label>E-mail</label><input id="c-email" type="email"></div>
+          </div>
+          <div class="field"><label>Descrição da seção</label><textarea id="c-desc"></textarea></div>
+        </div>
+        <div class="card">
+          <h3>Redes sociais</h3>
+          <div class="grid-2">
+            <div class="field"><label>Instagram URL</label><input id="c-insta" type="url"></div>
+            <div class="field"><label>YouTube URL</label><input id="c-yt" type="url"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <div class="save-bar">
+      <span id="save-status">Pronto</span>
+      <div class="btn-row" style="margin:0">
+        <button class="btn btn-outline btn-sm" onclick="window.open('/', '_blank')">Ver site ↗</button>
+        <button class="btn btn-gold" onclick="saveAll()">💾 Salvar tudo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let token=localStorage.getItem('mv_admin_token')||'';
+let siteData={};
+let currentGal=0;
+
+async function doLogin(){
+  const pw=document.getElementById('pw-input').value;
+  try{
+    const r=await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
+    const d=await r.json();
+    if(d.ok){token=d.token;localStorage.setItem('mv_admin_token',token);initAdmin();}
+    else document.getElementById('login-err').textContent=d.error||'Senha incorreta.';
+  }catch(e){document.getElementById('login-err').textContent='Erro de conexão.';}
+}
+document.getElementById('pw-input').addEventListener('keydown',e=>e.key==='Enter'&&doLogin());
+function logout(){localStorage.removeItem('mv_admin_token');location.reload();}
+async function initAdmin(){document.getElementById('login-screen').classList.add('hide');await loadData();populateAll();}
+if(token)initAdmin();
+
+async function loadData(){
+  const r=await fetch('/api/site');
+  siteData=await r.json();
+  if(!siteData.heroPhotos)siteData.heroPhotos=[siteData.hero?.bg_image||'/img/hero.jpg'];
+  if(!siteData.albums)siteData.albums=[];
 }
 
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
-app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
-app.get('/api/site', (req, res) => res.json(readData()));
+async function saveAll(){
+  collectAll();
+  const btn=document.querySelector('.main-head .btn-gold');
+  btn.textContent='Salvando...';btn.disabled=true;
+  try{
+    const r=await fetch('/api/admin/save',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify(siteData)});
+    const d=await r.json();
+    if(d.ok){toast('✓ Salvo!');document.getElementById('save-status').textContent='Salvo — '+new Date().toLocaleTimeString('pt-BR');}
+    else toast('Erro ao salvar',true);
+  }catch(e){toast('Erro de conexão',true);}
+  btn.innerHTML='💾 Salvar tudo';btn.disabled=false;
+}
 
-app.post('/api/contact', contactLimit, async (req, res) => {
-  const { nome, noivo, tel, data, pacote, msg } = req.body;
-  if (!nome || !tel) return res.status(400).json({ error: 'Nome e telefone são obrigatórios.' });
-  try {
-    const transporter = nodemailer.createTransport({
-      service: 'gmail',
-      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
-    });
-    const html = `
-    <div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;background:#0a0806;color:#f5f0e8;padding:40px">
-      <h1 style="font-size:26px;letter-spacing:8px;color:#c9a96e;font-weight:300;margin-bottom:8px">MV FOTOGRAFIA</h1>
-      <p style="font-size:10px;letter-spacing:3px;color:#8a7d6a;text-transform:uppercase;margin-bottom:28px">Nova solicitação de orçamento</p>
-      <table style="width:100%;border-collapse:collapse">
-        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase;width:130px">Nome</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#f5f0e8;font-size:14px">${nome}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Noivo(a)</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#f5f0e8;font-size:14px">${noivo||'—'}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase">WhatsApp</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#c9a96e;font-size:14px">${tel}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Data</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#f5f0e8;font-size:14px">${data||'—'}</td></tr>
-        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Pacote</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#c9a96e;font-size:14px">${pacote||'—'}</td></tr>
-      </table>
-      ${msg?`<div style="margin-top:20px"><p style="color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Mensagem</p><p style="color:#ede6d8;font-size:14px;line-height:1.8;white-space:pre-line">${msg}</p></div>`:''}
-      <div style="margin-top:28px;text-align:center">
-        <a href="https://wa.me/55${tel.replace(/\D/g,'')}" style="display:inline-block;background:#25D366;color:white;padding:14px 28px;text-decoration:none;font-size:11px;letter-spacing:2px;text-transform:uppercase">Responder no WhatsApp</a>
+function collectAll(){
+  if(!siteData.hero)siteData.hero={};
+  siteData.hero.pre=v('h-pre');
+  siteData.hero.title=v('h-title');
+  siteData.hero.desc=v('h-desc');
+  siteData.hero.badge_num=v('h-num');
+  if(siteData.heroPhotos?.length)siteData.hero.bg_image=siteData.heroPhotos[0];
+  if(!siteData.about)siteData.about={};
+  siteData.about.tag=v('a-tag');
+  siteData.about.p1=v('a-p1');
+  siteData.about.p2=v('a-p2');
+  siteData.about.stats=collectStats();
+  if(!siteData.contact)siteData.contact={};
+  siteData.contact.local=v('c-local');
+  siteData.contact.wpp_link=v('c-wpp-link');
+  siteData.contact.wpp_display=v('c-wpp-display');
+  siteData.contact.email=v('c-email');
+  siteData.contact.instagram=v('c-insta');
+  siteData.contact.youtube=v('c-yt');
+  siteData.contact.desc=v('c-desc');
+  if(siteData.services)siteData.services=collectServices();
+  if(siteData.packages)siteData.packages=collectPkgs();
+  if(siteData.testimonials)siteData.testimonials=collectTestis();
+}
+
+function populateAll(){
+  const h=siteData.hero||{};
+  set('h-pre',h.pre);set('h-title',h.title);set('h-desc',h.desc);set('h-num',h.badge_num);
+  renderHeroPhotos();
+  const a=siteData.about||{};
+  set('a-tag',a.tag);set('a-p1',a.p1);set('a-p2',a.p2);
+  const ap=document.getElementById('about-prev');
+  if(ap&&a.image)ap.src=a.image;
+  renderStatsFields(a.stats||[]);
+  renderGalleryTabs();renderCurrentGallery();
+  renderServicesFields();renderPricingFields();renderTestiFields();
+  const c=siteData.contact||{};
+  set('c-local',c.local);set('c-wpp-link',c.wpp_link);set('c-wpp-display',c.wpp_display);
+  set('c-email',c.email);set('c-insta',c.instagram);set('c-yt',c.youtube);set('c-desc',c.desc);
+}
+
+function v(id){const el=document.getElementById(id);return el?el.value:'';}
+function set(id,val){const el=document.getElementById(id);if(el&&val!==undefined&&val!==null)el.value=val;}
+
+function renderHeroPhotos(){
+  const grid=document.getElementById('hero-photos-grid');
+  const photos=siteData.heroPhotos||[];
+  grid.innerHTML=photos.map((src,i)=>`
+    <div class="hero-photo-card">
+      <img src="${src}" alt="Hero ${i+1}">
+      ${i===0?'<div class="hero-badge-label">Principal</div>':''}
+      <div class="hp-overlay">
+        ${i!==0?`<button class="hp-main" onclick="setHeroMain(${i})" title="Principal">⭐</button>`:''}
+        <button class="hp-del" onclick="deleteHeroPhoto(${i})" title="Remover">✕</button>
       </div>
+    </div>`).join('');
+  if(photos.length<5){
+    grid.innerHTML+=`<div class="hero-photo-add" onclick="document.getElementById('hero-upload-input').click()">
+      <span>+</span><p>Adicionar foto</p>
     </div>`;
-    await transporter.sendMail({
-      from: `"MV Fotografia - Site" <${process.env.EMAIL_USER}>`,
-      to: process.env.EMAIL_TO,
-      subject: `💍 Novo orçamento: ${nome} — ${pacote||'Pacote não informado'}`,
-      html,
-      replyTo: tel
-    });
-    res.json({ ok: true, message: 'Mensagem enviada! Retorno em até 24 horas.' });
-  } catch (err) {
-    console.error('Email error:', err);
-    res.json({ ok: true, message: 'Mensagem recebida! Retorno em até 24 horas.' });
   }
-});
+}
 
-app.post('/api/admin/login', adminLimit, (req, res) => {
-  if (req.body.password === process.env.ADMIN_PASSWORD) {
-    res.json({ ok: true, token: process.env.ADMIN_PASSWORD });
-  } else {
-    res.status(401).json({ error: 'Senha incorreta.' });
+function setHeroMain(idx){
+  const photos=siteData.heroPhotos;
+  const main=photos.splice(idx,1)[0];
+  photos.unshift(main);
+  renderHeroPhotos();
+  toast('✓ Foto principal definida!');
+}
+
+function deleteHeroPhoto(idx){
+  if(siteData.heroPhotos.length<=1){toast('Precisa ter ao menos 1 foto',true);return;}
+  siteData.heroPhotos.splice(idx,1);
+  renderHeroPhotos();
+  toast('Foto removida. Salve para confirmar.');
+}
+
+async function uploadHeroPhotos(input){
+  const files=Array.from(input.files);
+  const remaining=5-(siteData.heroPhotos||[]).length;
+  const toUpload=files.slice(0,remaining);
+  if(!toUpload.length){toast('Máximo de 5 fotos',true);return;}
+  const prog=document.getElementById('hero-upload-progress');
+  prog.style.display='block';
+  for(let i=0;i<toUpload.length;i++){
+    const fd=new FormData();fd.append('photo',toUpload[i]);
+    prog.textContent=`Enviando ${i+1} de ${toUpload.length}...`;
+    try{
+      const r=await fetch('/api/admin/upload',{method:'POST',headers:{'x-admin-token':token},body:fd});
+      const d=await r.json();
+      if(d.ok){if(!siteData.heroPhotos)siteData.heroPhotos=[];siteData.heroPhotos.push(d.url);}
+    }catch(e){toast('Erro no upload',true);}
   }
-});
+  prog.style.display='none';renderHeroPhotos();toast('✓ Fotos adicionadas!');input.value='';
+}
 
-app.post('/api/admin/save', adminAuth, (req, res) => {
-  try {
-    const current = readData();
-    const updated = { ...current, ...req.body };
-    if (updated.heroPhotos?.length) {
-      updated.hero.bg_image = updated.heroPhotos[0];
-    }
-    writeData(updated);
-    res.json({ ok: true });
-  } catch (e) {
-    res.status(500).json({ error: 'Erro ao salvar.' });
+async function uploadAboutPhoto(input){
+  const fd=new FormData();fd.append('photo',input.files[0]);
+  const r=await fetch('/api/admin/upload',{method:'POST',headers:{'x-admin-token':token},body:fd});
+  const d=await r.json();
+  if(d.ok){siteData.about.image=d.url;document.getElementById('about-prev').src=d.url;toast('✓ Foto atualizada!');}
+}
+
+function renderStatsFields(stats){
+  const c=document.getElementById('stats-fields');
+  c.innerHTML=stats.map((s,i)=>`
+    <div class="grid-2" style="margin-bottom:10px" id="stat-row-${i}">
+      <div class="field"><label>Valor ${i+1}</label><input type="text" id="sn-${i}" value="${s.n||''}"></div>
+      <div class="field"><label style="display:flex;justify-content:space-between">Label <span style="color:var(--red);cursor:pointer" onclick="removeStat(${i})">✕</span></label><input type="text" id="sl-${i}" value="${s.l||''}"></div>
+    </div>`).join('');
+}
+function collectStats(){const s=[];let i=0;while(document.getElementById('sn-'+i)){s.push({n:v('sn-'+i),l:v('sl-'+i)});i++;}return s;}
+function addStat(){renderStatsFields([...collectStats(),{n:'',l:''}]);}
+function removeStat(i){const s=collectStats();s.splice(i,1);renderStatsFields(s);}
+
+function renderGalleryTabs(){
+  const tabs=document.getElementById('gal-tabs');
+  const gals=siteData.galleries||[];
+  tabs.innerHTML=gals.map((g,i)=>`<button class="gal-tab${i===currentGal?' on':''}" onclick="switchGal(${i})">${g.name}</button>`).join('');
+}
+function switchGal(i){currentGal=i;renderGalleryTabs();renderCurrentGallery();}
+function updateGalName(val){if(siteData.galleries[currentGal])siteData.galleries[currentGal].name=val;renderGalleryTabs();}
+function renderCurrentGallery(){
+  const gal=(siteData.galleries||[])[currentGal];
+  const nameInput=document.getElementById('gal-name-input');
+  if(nameInput&&gal)nameInput.value=gal.name||'';
+  const grid=document.getElementById('photo-grid');
+  if(!gal){grid.innerHTML='';return;}
+  grid.innerHTML=(gal.photos||[]).map((p,i)=>`
+    <div class="photo-card">
+      <img src="${p.file}" alt="${p.title}" loading="lazy">
+      <button class="photo-del" onclick="deleteGalPhoto(${i})">✕</button>
+      <div class="photo-card-body">
+        <input class="photo-card-input" value="${p.title||''}" onchange="updatePhotoTitle(${i},this.value)" placeholder="Título">
+      </div>
+    </div>`).join('');
+}
+function updatePhotoTitle(i,val){if(siteData.galleries[currentGal])siteData.galleries[currentGal].photos[i].title=val;}
+function deleteGalPhoto(i){siteData.galleries[currentGal].photos.splice(i,1);renderCurrentGallery();toast('Foto removida. Salve para confirmar.');}
+async function handleGalUpload(input){
+  const files=Array.from(input.files);
+  const prog=document.getElementById('gal-upload-progress');
+  prog.style.display='block';
+  for(let i=0;i<files.length;i++){
+    const fd=new FormData();fd.append('photo',files[i]);
+    prog.textContent=`Enviando ${i+1} de ${files.length}...`;
+    try{
+      const r=await fetch('/api/admin/upload',{method:'POST',headers:{'x-admin-token':token},body:fd});
+      const d=await r.json();
+      if(d.ok){siteData.galleries[currentGal].photos.push({file:d.url,title:files[i].name.replace(/\.[^.]+$/,'').replace(/_/g,' '),cat:siteData.galleries[currentGal].id});renderCurrentGallery();}
+    }catch(e){toast('Erro no upload',true);}
   }
-});
+  prog.style.display='none';toast('✓ Fotos adicionadas!');input.value='';
+}
+function addGallery(){
+  const name=document.getElementById('new-gal-name').value.trim();
+  if(!name){toast('Digite o nome',true);return;}
+  const id=name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  if(!siteData.galleries)siteData.galleries=[];
+  siteData.galleries.push({id,name,photos:[]});
+  currentGal=siteData.galleries.length-1;
+  document.getElementById('new-gal-name').value='';
+  renderGalleryTabs();renderCurrentGallery();toast('Galeria "'+name+'" criada!');
+}
+function deleteCurrentGallery(){
+  if(!confirm('Deletar galeria "'+siteData.galleries[currentGal]?.name+'"?'))return;
+  siteData.galleries.splice(currentGal,1);
+  currentGal=Math.max(0,currentGal-1);
+  renderGalleryTabs();renderCurrentGallery();toast('Galeria removida. Salve para confirmar.');
+}
 
-app.post('/api/admin/upload', adminAuth, upload.single('photo'), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
-  res.json({ ok: true, url: `/uploads/${req.file.filename}` });
-});
+function renderServicesFields(){
+  const c=document.getElementById('srv-fields');
+  const svs=siteData.services||[];
+  c.innerHTML=svs.map((s,i)=>`
+    <div class="card" id="srv-${i}">
+      <h3 style="display:flex;justify-content:space-between;align-items:center">${s.name||'Serviço'} <button class="btn btn-red btn-sm" onclick="removeService(${i})">✕</button></h3>
+      <div class="grid-2">
+        <div class="field"><label>Número</label><input id="s${i}-num" type="text" value="${s.num||''}"></div>
+        <div class="field"><label>Nome</label><input id="s${i}-name" type="text" value="${s.name||''}"></div>
+      </div>
+      <div class="field"><label>Descrição</label><textarea id="s${i}-desc">${s.desc||''}</textarea></div>
+      <div class="field"><label>Itens (um por linha)</label><textarea id="s${i}-items" style="min-height:100px">${(s.items||[]).join('\n')}</textarea></div>
+    </div>`).join('');
+}
+function collectServices(){const s=[];let i=0;while(document.getElementById('srv-'+i)){s.push({num:v(`s${i}-num`),name:v(`s${i}-name`),desc:v(`s${i}-desc`),items:v(`s${i}-items`).split('\n').filter(x=>x.trim())});i++;}return s;}
+function addService(){siteData.services=collectServices();siteData.services.push({num:`0${siteData.services.length+1}`,name:'Novo Serviço',desc:'',items:[]});renderServicesFields();}
+function removeService(i){siteData.services=collectServices();siteData.services.splice(i,1);renderServicesFields();}
 
-app.delete('/api/admin/photo', adminAuth, (req, res) => {
-  const { url } = req.body;
-  if (!url || !url.startsWith('/uploads/')) return res.status(400).json({ error: 'URL inválida.' });
-  const filePath = path.join(__dirname, 'public', url);
-  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
-  res.json({ ok: true });
-});
+function renderPricingFields(){
+  const c=document.getElementById('pkg-fields');
+  const pkgs=siteData.packages||[];
+  c.innerHTML=pkgs.map((p,i)=>`
+    <div class="pkg-admin-card" id="pkg-${i}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:12px;color:var(--cream)">${p.name}</span>
+        <button class="btn btn-red btn-sm" onclick="removePkg(${i})">✕</button>
+      </div>
+      <div class="grid-2" style="margin-bottom:10px">
+        <div class="field"><label>Nome</label><input id="p${i}-name" type="text" value="${p.name||''}"></div>
+        <div class="field"><label>Valor (R$)</label><input id="p${i}-val" type="text" value="${p.value||''}"></div>
+      </div>
+      <div class="field"><label>Período</label><input id="p${i}-per" type="text" value="${p.period||''}"></div>
+      <label style="display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);cursor:pointer;margin:10px 0">
+        <input type="checkbox" id="p${i}-feat" ${p.featured?'checked':''} style="accent-color:var(--gold)"> Destacar como "mais escolhido"
+      </label>
+      <div class="field"><label>Itens (prefixe com - para desativado)</label>
+        <textarea id="p${i}-items" style="min-height:120px">${(p.items||[]).map(it=>(it.active?'':'-')+it.text).join('\n')}</textarea>
+      </div>
+    </div>`).join('');
+}
+function collectPkgs(){const pkgs=[];let i=0;while(document.getElementById('pkg-'+i)){const lines=v(`p${i}-items`).split('\n').filter(x=>x.trim());pkgs.push({id:`p${i+1}`,name:v(`p${i}-name`),value:v(`p${i}-val`),period:v(`p${i}-per`),featured:document.getElementById(`p${i}-feat`)?.checked,items:lines.map(l=>({text:l.startsWith('-')?l.slice(1).trim():l.trim(),active:!l.startsWith('-')}))});i++;}return pkgs;}
+function addPackage(){siteData.packages=collectPkgs();siteData.packages.push({id:`p${siteData.packages.length+1}`,name:'Novo Pacote',value:'',period:'',featured:false,items:[]});renderPricingFields();}
+function removePkg(i){siteData.packages=collectPkgs();siteData.packages.splice(i,1);renderPricingFields();}
 
-app.listen(PORT, () => {
-  console.log(`\n🎯 MV Fotografia rodando em http://localhost:${PORT}`);
-  console.log(`📸 Admin em http://localhost:${PORT}/admin\n`);
-});
+function renderTestiFields(){
+  const c=document.getElementById('testi-fields');
+  const ts=siteData.testimonials||[];
+  c.innerHTML=ts.map((t,i)=>`
+    <div class="testi-card" id="tst-${i}">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+        <span style="font-size:11px;color:var(--gold)">Depoimento ${i+1}</span>
+        <button class="btn btn-red btn-sm" onclick="removeTesti(${i})">✕</button>
+      </div>
+      <div style="display:flex;gap:12px;align-items:flex-start;margin-bottom:12px">
+        ${t.photo?`<img src="${t.photo}" class="testi-photo-prev" alt="">`:'<div style="width:60px;height:60px;border-radius:50%;background:var(--dark3);border:.5px solid var(--border);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0">💑</div>'}
+        <div style="flex:1">
+          <input type="file" accept="image/*" style="display:none" id="tphoto-${i}" onchange="uploadTestiPhoto(this,${i})">
+          <button class="btn btn-outline btn-sm" onclick="document.getElementById('tphoto-${i}').click()">📁 Foto do casal</button>
+        </div>
+      </div>
+      <div class="grid-2">
+        <div class="field"><label>Nome do casal</label><input id="t${i}-name" type="text" value="${t.name||''}"></div>
+        <div class="field"><label>Data e local</label><input id="t${i}-date" type="text" value="${t.date||''}"></div>
+      </div>
+      <div class="field"><label>Depoimento</label><textarea id="t${i}-text">${t.text||''}</textarea></div>
+    </div>`).join('');
+}
+function collectTestis(){const ts=[];let i=0;while(document.getElementById('tst-'+i)){ts.push({...siteData.testimonials[i],name:v(`t${i}-name`),date:v(`t${i}-date`),text:v(`t${i}-text`)});i++;}return ts;}
+function addTestimonial(){siteData.testimonials=collectTestis();siteData.testimonials.push({name:'',date:'',text:'',photo:''});renderTestiFields();}
+function removeTesti(i){siteData.testimonials=collectTestis();siteData.testimonials.splice(i,1);renderTestiFields();}
+async function uploadTestiPhoto(input,idx){
+  const fd=new FormData();fd.append('photo',input.files[0]);
+  const r=await fetch('/api/admin/upload',{method:'POST',headers:{'x-admin-token':token},body:fd});
+  const d=await r.json();
+  if(d.ok){siteData.testimonials[idx].photo=d.url;renderTestiFields();toast('✓ Foto adicionada!');}
+}
+
+const tabTitles={hero:'Hero & Fotos',about:'Sobre',gallery:'Galerias & Fotos',services:'Serviços',pricing:'Pacotes & Preços',testimonials:'Depoimentos',contact:'Contato & Redes'};
+function showTab(name){
+  if(siteData.services)siteData.services=collectServices();
+  if(siteData.packages)siteData.packages=collectPkgs();
+  if(siteData.testimonials)siteData.testimonials=collectTestis();
+  if(siteData.about)siteData.about.stats=collectStats();
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('on'));
+  document.getElementById('tab-'+name).classList.add('on');
+  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('on'));
+  event.currentTarget.classList.add('on');
+  document.getElementById('tab-title').textContent=tabTitles[name]||name;
+}
+
+function toast(msg,isErr=false){const t=document.getElementById('toast');t.textContent=msg;t.className='show'+(isErr?' err':'');setTimeout(()=>t.className='',2500);}
+document.addEventListener('input',()=>{document.getElementById('save-status').textContent='Não salvo — clique em Salvar';});
+</script>
+</body>
+</html>

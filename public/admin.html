@@ -1,695 +1,127 @@
-<!DOCTYPE html>
-<html lang="pt-BR">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Admin — MV Fotografia</title>
-<meta name="robots" content="noindex, nofollow">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;1,400&family=Montserrat:wght@300;400;500&display=swap" rel="stylesheet">
-<style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--gold:#c9a96e;--dark:#0a0806;--dark2:#120f0a;--dark3:#1c1610;--cream:#f5f0e8;--muted:#8a7d6a;--red:#e05a5a;--green:#5acd8a}
-body{background:var(--dark2);color:var(--cream);font-family:'Montserrat',sans-serif;font-weight:300;min-height:100vh}
+require('dotenv').config();
+const express = require('express');
+const multer = require('multer');
+const nodemailer = require('nodemailer');
+const cors = require('cors');
+const rateLimit = require('express-rate-limit');
+const path = require('path');
+const fs = require('fs');
 
-/* LOGIN */
-#login-screen{position:fixed;inset:0;background:var(--dark);display:flex;align-items:center;justify-content:center;z-index:1000;flex-direction:column;gap:24px}
-#login-screen.hide{display:none}
-.login-logo{font-family:'Cormorant Garamond',serif;font-size:28px;letter-spacing:8px;color:var(--gold)}
-.login-sub{font-size:9px;letter-spacing:4px;text-transform:uppercase;color:var(--muted)}
-.login-box{background:var(--dark3);border:.5px solid rgba(201,169,110,.2);padding:40px;width:320px;display:flex;flex-direction:column;gap:16px}
-.login-box input{background:transparent;border:none;border-bottom:.5px solid rgba(201,169,110,.2);padding:12px 0;font-size:13px;color:var(--cream);font-family:'Montserrat',sans-serif;outline:none;transition:border-color .3s}
-.login-box input:focus{border-bottom-color:var(--gold)}
-.login-box button{background:var(--gold);color:var(--dark);border:none;padding:14px;font-size:10px;letter-spacing:3px;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:400;transition:all .3s;margin-top:4px}
-.login-box button:hover{background:#e8d5b0}
-.login-err{color:var(--red);font-size:11px;text-align:center}
+const app = express();
+const PORT = process.env.PORT || 3000;
 
-/* LAYOUT */
-#app{display:grid;grid-template-columns:260px 1fr;min-height:100vh}
-#sidebar{background:var(--dark3);border-right:.5px solid rgba(201,169,110,.1);display:flex;flex-direction:column}
-.sb-logo{padding:24px;border-bottom:.5px solid rgba(201,169,110,.1)}
-.sb-logo img{height:40px;filter:invert(1) sepia(1) saturate(0) brightness(1.2)}
-.sb-nav{flex:1;padding:16px 0}
-.sb-item{display:flex;align-items:center;gap:12px;padding:13px 24px;font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:pointer;transition:all .3s;border-left:2px solid transparent}
-.sb-item:hover{color:var(--cream);background:rgba(255,255,255,.02)}
-.sb-item.on{color:var(--gold);border-left-color:var(--gold);background:rgba(201,169,110,.05)}
-.sb-item .ic{font-size:14px;width:20px;text-align:center}
-.sb-footer{padding:20px 24px;border-top:.5px solid rgba(201,169,110,.1)}
-.sb-logout{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Montserrat',sans-serif;transition:color .3s}
-.sb-logout:hover{color:var(--red)}
-#main{overflow-y:auto;max-height:100vh}
-.main-head{padding:28px 36px;border-bottom:.5px solid rgba(201,169,110,.1);display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;background:var(--dark2);z-index:10}
-.main-head h1{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold);font-weight:400}
-.main-body{padding:28px 36px}
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
 
-/* TABS */
-.tab-content{display:none}
-.tab-content.on{display:block}
+const contactLimit = rateLimit({ windowMs: 15*60*1000, max: 5, message: { error: 'Muitas tentativas.' } });
+const adminLimit = rateLimit({ windowMs: 15*60*1000, max: 10, message: { error: 'Muitas tentativas de login.' } });
 
-/* CARDS */
-.card{background:var(--dark3);border:.5px solid rgba(201,169,110,.1);padding:24px;margin-bottom:20px}
-.card h3{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold);font-weight:400;margin-bottom:18px}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-.grid-3{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    const dir = path.join(__dirname, 'public/uploads');
+    if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
+    cb(null, dir);
+  },
+  filename: (req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    cb(null, `photo_${Date.now()}_${Math.random().toString(36).slice(2,7)}${ext}`);
+  }
+});
+const upload = multer({
+  storage,
+  limits: { fileSize: 10 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => cb(null, /jpeg|jpg|png|webp/.test(file.mimetype))
+});
 
-/* FORM ELEMENTS */
-.field{margin-bottom:16px}
-.field label{display:block;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);margin-bottom:6px}
-.field input,.field textarea,.field select{width:100%;background:rgba(255,255,255,.04);border:.5px solid rgba(201,169,110,.2);padding:10px 12px;font-size:12px;color:var(--cream);font-family:'Montserrat',sans-serif;font-weight:300;outline:none;transition:border-color .3s}
-.field input:focus,.field textarea:focus,.field select:focus{border-color:var(--gold)}
-.field textarea{resize:vertical;min-height:80px}
-.field select{appearance:none;cursor:pointer}
-.field select option{background:var(--dark2)}
+const DATA_PATH = path.join(__dirname, 'data/site.json');
+function readData() { return JSON.parse(fs.readFileSync(DATA_PATH, 'utf8')); }
+function writeData(data) { fs.writeFileSync(DATA_PATH, JSON.stringify(data, null, 2)); }
 
-/* BUTTONS */
-.btn{padding:10px 22px;font-size:9px;letter-spacing:2px;text-transform:uppercase;cursor:pointer;font-family:'Montserrat',sans-serif;font-weight:400;transition:all .3s;border:none}
-.btn-gold{background:var(--gold);color:var(--dark)}
-.btn-gold:hover{background:#e8d5b0}
-.btn-outline{background:transparent;border:.5px solid rgba(201,169,110,.3);color:var(--gold)}
-.btn-outline:hover{background:rgba(201,169,110,.1)}
-.btn-red{background:transparent;border:.5px solid rgba(224,90,90,.3);color:var(--red)}
-.btn-red:hover{background:rgba(224,90,90,.1)}
-.btn-green{background:var(--green);color:var(--dark)}
-.btn-sm{padding:6px 14px;font-size:8px}
-.btn-row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-top:16px}
+function adminAuth(req, res, next) {
+  if (req.headers['x-admin-token'] === process.env.ADMIN_PASSWORD) return next();
+  res.status(401).json({ error: 'Não autorizado' });
+}
 
-/* GALLERY ADMIN */
-.gal-tabs{display:flex;gap:0;margin-bottom:20px;border-bottom:.5px solid rgba(201,169,110,.1)}
-.gal-tab{padding:10px 20px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);cursor:pointer;background:none;border:none;font-family:'Montserrat',sans-serif;border-bottom:2px solid transparent;transition:all .3s}
-.gal-tab.on{color:var(--gold);border-bottom-color:var(--gold)}
-.photo-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px;margin-bottom:16px}
-.photo-card{background:var(--dark);border:.5px solid rgba(201,169,110,.1);position:relative;cursor:grab}
-.photo-card.dragging{opacity:.4;transform:scale(.97)}
-.photo-card.drag-over{border-color:var(--gold);background:rgba(201,169,110,.05)}
-.photo-card img{width:100%;height:120px;object-fit:cover;display:block}
-.photo-card-body{padding:8px}
-.photo-card-title{font-size:10px;color:var(--cream);margin-bottom:4px}
-.photo-card-input{width:100%;background:transparent;border:none;border-bottom:.5px solid rgba(201,169,110,.15);padding:4px 0;font-size:10px;color:var(--cream);font-family:'Montserrat',sans-serif;outline:none}
-.photo-card-input:focus{border-bottom-color:var(--gold)}
-.photo-del{position:absolute;top:5px;right:5px;background:rgba(10,8,6,.8);border:none;color:var(--red);width:22px;height:22px;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s}
-.photo-card:hover .photo-del{opacity:1}
-.upload-zone{border:.5px dashed rgba(201,169,110,.3);padding:24px;text-align:center;cursor:pointer;transition:all .3s}
-.upload-zone:hover{border-color:var(--gold);background:rgba(201,169,110,.04)}
-.upload-zone input{display:none}
-.upload-label{font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted)}
-.upload-zone:hover .upload-label{color:var(--gold)}
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'public/index.html')));
+app.get('/admin', (req, res) => res.sendFile(path.join(__dirname, 'public/admin.html')));
+app.get('/api/site', (req, res) => res.json(readData()));
 
-/* PACKAGES */
-.pkg-admin-card{background:var(--dark);border:.5px solid rgba(201,169,110,.1);padding:20px;margin-bottom:14px}
-.pkg-admin-card h4{font-family:'Cormorant Garamond',serif;font-size:16px;color:var(--cream);margin-bottom:14px;display:flex;align-items:center;gap:10px}
-.pkg-items-list{margin-top:12px}
-.pkg-item-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
-.pkg-item-row input[type=text]{flex:1;background:transparent;border:.5px solid rgba(201,169,110,.15);padding:7px 10px;font-size:11px;color:var(--cream);font-family:'Montserrat',sans-serif;outline:none}
-.pkg-item-row input[type=text]:focus{border-color:var(--gold)}
-.pkg-item-row input[type=checkbox]{accent-color:var(--gold);width:14px;height:14px;cursor:pointer}
-.feat-toggle{display:flex;align-items:center;gap:8px;font-size:10px;color:var(--muted);cursor:pointer}
-.feat-toggle input{accent-color:var(--gold)}
-
-/* TESTIMONIAL */
-.testi-card{background:var(--dark);border:.5px solid rgba(201,169,110,.1);padding:18px;margin-bottom:12px}
-
-/* TOAST */
-#toast{position:fixed;bottom:24px;right:24px;background:rgba(10,8,6,.95);border:.5px solid rgba(201,169,110,.4);color:var(--gold);font-size:10px;letter-spacing:2px;padding:12px 20px;z-index:9999;transform:translateY(20px);opacity:0;transition:all .4s;pointer-events:none}
-#toast.show{transform:translateY(0);opacity:1}
-#toast.err{border-color:rgba(224,90,90,.4);color:var(--red)}
-
-/* PREVIEW LINK */
-.preview-bar{background:var(--dark3);border-bottom:.5px solid rgba(201,169,110,.1);padding:10px 36px;display:flex;align-items:center;gap:16px;font-size:10px;color:var(--muted)}
-.preview-bar a{color:var(--gold);text-decoration:none;letter-spacing:1px}
-.preview-bar a:hover{text-decoration:underline}
-.status-dot{width:8px;height:8px;border-radius:50%;background:var(--green)}
-
-/* SAVE BAR */
-.save-bar{position:sticky;bottom:0;background:var(--dark3);border-top:.5px solid rgba(201,169,110,.2);padding:14px 36px;display:flex;align-items:center;justify-content:space-between;z-index:5}
-.save-bar span{font-size:10px;color:var(--muted);letter-spacing:1px}
-</style>
-</head>
-<body>
-
-<!-- LOGIN -->
-<div id="login-screen">
-  <div class="login-logo">MV FOTOGRAFIA</div>
-  <div class="login-sub">Painel Administrativo</div>
-  <div class="login-box">
-    <input type="password" id="pw-input" placeholder="Senha de acesso" autocomplete="current-password">
-    <button onclick="doLogin()">Entrar</button>
-    <div class="login-err" id="login-err"></div>
-  </div>
-</div>
-
-<div id="toast"></div>
-
-<!-- APP -->
-<div id="app">
-  <!-- SIDEBAR -->
-  <div id="sidebar">
-    <div class="sb-logo"><img src="/img/logo.png" alt="MV Fotografia"></div>
-    <nav class="sb-nav">
-      <div class="sb-item on" onclick="showTab('hero')"><span class="ic">🏠</span> Hero & Início</div>
-      <div class="sb-item" onclick="showTab('about')"><span class="ic">👤</span> Sobre</div>
-      <div class="sb-item" onclick="showTab('gallery')"><span class="ic">🖼</span> Galerias</div>
-      <div class="sb-item" onclick="showTab('services')"><span class="ic">💼</span> Serviços</div>
-      <div class="sb-item" onclick="showTab('pricing')"><span class="ic">💰</span> Pacotes & Preços</div>
-      <div class="sb-item" onclick="showTab('testimonials')"><span class="ic">💬</span> Depoimentos</div>
-      <div class="sb-item" onclick="showTab('contact')"><span class="ic">📞</span> Contato & Redes</div>
-    </nav>
-    <div class="sb-footer">
-      <a href="/" target="_blank" style="display:block;font-size:10px;letter-spacing:2px;text-transform:uppercase;color:var(--muted);text-decoration:none;margin-bottom:12px;transition:color .3s" onmouseover="this.style.color='var(--gold)'" onmouseout="this.style.color='var(--muted)'">↗ Ver site</a>
-      <button class="sb-logout" onclick="logout()">Sair</button>
-    </div>
-  </div>
-
-  <!-- MAIN -->
-  <div id="main">
-    <div class="preview-bar">
-      <div class="status-dot"></div>
-      <span>Site online</span>
-      <a href="/" target="_blank">Abrir site em nova aba ↗</a>
-    </div>
-
-    <div class="main-head">
-      <h1 id="tab-title">Hero & Início</h1>
-      <button class="btn btn-gold" onclick="saveAll()">💾 Salvar tudo</button>
-    </div>
-
-    <div class="main-body">
-
-      <!-- ── TAB: HERO ── -->
-      <div class="tab-content on" id="tab-hero">
-        <div class="card">
-          <h3>Imagem principal (Hero)</h3>
-          <div style="position:relative;margin-bottom:16px">
-            <img id="hero-prev" src="" style="width:100%;height:220px;object-fit:cover;display:block">
-            <label style="position:absolute;bottom:10px;left:10px;background:rgba(10,8,6,.85);border:.5px solid rgba(201,169,110,.3);padding:8px 16px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);cursor:pointer">
-              📁 Trocar imagem
-              <input type="file" accept="image/*" style="display:none" onchange="uploadHero(this)">
-            </label>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Textos do Hero</h3>
-          <div class="grid-2">
-            <div class="field"><label>Subtítulo</label><input id="h-pre" type="text"></div>
-            <div class="field"><label>Número destaque (ex: +248)</label><input id="h-num" type="text"></div>
-          </div>
-          <div class="field"><label>Título (use \n para nova linha)</label><input id="h-title" type="text"></div>
-          <div class="field"><label>Descrição</label><textarea id="h-desc"></textarea></div>
-          <div class="field"><label>Texto do badge</label><input id="h-badge" type="text"></div>
-        </div>
-      </div>
-
-      <!-- ── TAB: ABOUT ── -->
-      <div class="tab-content" id="tab-about">
-        <div class="card">
-          <h3>Foto do Sobre</h3>
-          <div style="position:relative;margin-bottom:16px">
-            <img id="about-prev" src="" style="width:300px;height:400px;object-fit:cover;display:block">
-            <label style="position:absolute;bottom:10px;left:10px;background:rgba(10,8,6,.85);border:.5px solid rgba(201,169,110,.3);padding:8px 16px;font-size:9px;letter-spacing:2px;text-transform:uppercase;color:var(--gold);cursor:pointer">
-              📁 Trocar
-              <input type="file" accept="image/*" style="display:none" onchange="uploadAbout(this)">
-            </label>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Textos</h3>
-          <div class="field"><label>Frase da imagem</label><input id="a-tag" type="text"></div>
-          <div class="field"><label>Parágrafo 1</label><textarea id="a-p1"></textarea></div>
-          <div class="field"><label>Parágrafo 2</label><textarea id="a-p2"></textarea></div>
-        </div>
-        <div class="card">
-          <h3>Estatísticas</h3>
-          <div id="stats-fields"></div>
-          <button class="btn btn-outline btn-sm" onclick="addStat()">+ Adicionar</button>
-        </div>
-      </div>
-
-      <!-- ── TAB: GALLERY ── -->
-      <div class="tab-content" id="tab-gallery">
-        <div class="card">
-          <h3>Galerias</h3>
-          <div class="gal-tabs" id="gal-tabs"></div>
-          <div id="gal-add-name" style="display:flex;gap:10px;margin-bottom:16px">
-            <input type="text" id="new-gal-name" placeholder="Nome da nova galeria" style="flex:1;background:rgba(255,255,255,.04);border:.5px solid rgba(201,169,110,.2);padding:9px 12px;font-size:12px;color:var(--cream);font-family:Montserrat,sans-serif;outline:none">
-            <button class="btn btn-outline btn-sm" onclick="addGallery()">+ Nova galeria</button>
-          </div>
-          <div id="gal-content"></div>
-          <div class="upload-zone" id="upload-zone" onclick="triggerUpload()">
-            <input type="file" id="gal-upload" accept="image/*" multiple onchange="handleGalUpload(this)">
-            <div class="upload-label">📁 Clique ou arraste fotos aqui para adicionar à galeria</div>
-            <div style="font-size:9px;color:var(--muted);margin-top:6px;letter-spacing:1px">JPG, PNG, WEBP · Máx 10MB por foto</div>
-          </div>
-          <div class="btn-row">
-            <button class="btn btn-red btn-sm" id="del-gal-btn" onclick="deleteCurrentGallery()">🗑 Deletar esta galeria</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ── TAB: SERVICES ── -->
-      <div class="tab-content" id="tab-services">
-        <div id="srv-fields"></div>
-        <button class="btn btn-outline" onclick="addService()">+ Adicionar serviço</button>
-      </div>
-
-      <!-- ── TAB: PRICING ── -->
-      <div class="tab-content" id="tab-pricing">
-        <div id="pkg-fields"></div>
-        <button class="btn btn-outline" onclick="addPackage()">+ Adicionar pacote</button>
-      </div>
-
-      <!-- ── TAB: TESTIMONIALS ── -->
-      <div class="tab-content" id="tab-testimonials">
-        <div id="testi-fields"></div>
-        <button class="btn btn-outline" onclick="addTestimonial()">+ Adicionar depoimento</button>
-      </div>
-
-      <!-- ── TAB: CONTACT ── -->
-      <div class="tab-content" id="tab-contact">
-        <div class="card">
-          <h3>Informações de contato</h3>
-          <div class="grid-2">
-            <div class="field"><label>Localização</label><input id="c-local" type="text"></div>
-            <div class="field"><label>Número WhatsApp (com código do país)</label><input id="c-wpp-link" type="text" placeholder="5537999999999"></div>
-          </div>
-          <div class="grid-2">
-            <div class="field"><label>Número exibido no site</label><input id="c-wpp-display" type="text" placeholder="(37) 99999-9999"></div>
-            <div class="field"><label>E-mail</label><input id="c-email" type="email"></div>
-          </div>
-        </div>
-        <div class="card">
-          <h3>Redes sociais</h3>
-          <div class="grid-2">
-            <div class="field"><label>Instagram URL</label><input id="c-insta" type="url" placeholder="https://instagram.com/mvfotografia"></div>
-            <div class="field"><label>YouTube URL</label><input id="c-yt" type="url" placeholder="https://youtube.com/@mv"></div>
-          </div>
-          <div class="field"><label>Descrição da seção de contato</label><textarea id="c-desc"></textarea></div>
-        </div>
-      </div>
-
-    </div><!-- main-body -->
-
-    <div class="save-bar">
-      <span id="save-status">Alterações não salvas</span>
-      <div class="btn-row" style="margin:0">
-        <button class="btn btn-outline btn-sm" onclick="window.open('/', '_blank')">Ver site ↗</button>
-        <button class="btn btn-gold" onclick="saveAll()">💾 Salvar tudo</button>
-      </div>
-    </div>
-
-  </div><!-- main -->
-</div><!-- app -->
-
-<script>
-let token = localStorage.getItem('mv_admin_token') || '';
-let siteData = {};
-let currentGal = 0;
-
-// ── LOGIN ────────────────────────────────────────────────────
-async function doLogin(){
-  const pw = document.getElementById('pw-input').value;
+app.post('/api/contact', contactLimit, async (req, res) => {
+  const { nome, noivo, tel, data, pacote, msg } = req.body;
+  if (!nome || !tel) return res.status(400).json({ error: 'Nome e telefone são obrigatórios.' });
   try {
-    const r = await fetch('/api/admin/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:pw})});
-    const d = await r.json();
-    if(d.ok){ token=d.token; localStorage.setItem('mv_admin_token',token); initAdmin(); }
-    else document.getElementById('login-err').textContent = d.error || 'Senha incorreta.';
-  } catch(e){ document.getElementById('login-err').textContent = 'Erro de conexão.'; }
-}
-document.getElementById('pw-input').addEventListener('keydown', e => e.key==='Enter' && doLogin());
-function logout(){ localStorage.removeItem('mv_admin_token'); location.reload(); }
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: { user: process.env.EMAIL_USER, pass: process.env.EMAIL_PASS }
+    });
+    const html = `
+    <div style="font-family:Georgia,serif;max-width:600px;margin:0 auto;background:#0a0806;color:#f5f0e8;padding:40px">
+      <h1 style="font-size:26px;letter-spacing:8px;color:#c9a96e;font-weight:300;margin-bottom:8px">MV FOTOGRAFIA</h1>
+      <p style="font-size:10px;letter-spacing:3px;color:#8a7d6a;text-transform:uppercase;margin-bottom:28px">Nova solicitação de orçamento</p>
+      <table style="width:100%;border-collapse:collapse">
+        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase;width:130px">Nome</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#f5f0e8;font-size:14px">${nome}</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Noivo(a)</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#f5f0e8;font-size:14px">${noivo||'—'}</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase">WhatsApp</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#c9a96e;font-size:14px">${tel}</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Data</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#f5f0e8;font-size:14px">${data||'—'}</td></tr>
+        <tr><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase">Pacote</td><td style="padding:10px 0;border-bottom:.5px solid rgba(255,255,255,.08);color:#c9a96e;font-size:14px">${pacote||'—'}</td></tr>
+      </table>
+      ${msg?`<div style="margin-top:20px"><p style="color:#8a7d6a;font-size:11px;letter-spacing:2px;text-transform:uppercase;margin-bottom:8px">Mensagem</p><p style="color:#ede6d8;font-size:14px;line-height:1.8;white-space:pre-line">${msg}</p></div>`:''}
+      <div style="margin-top:28px;text-align:center">
+        <a href="https://wa.me/55${tel.replace(/\D/g,'')}" style="display:inline-block;background:#25D366;color:white;padding:14px 28px;text-decoration:none;font-size:11px;letter-spacing:2px;text-transform:uppercase">Responder no WhatsApp</a>
+      </div>
+    </div>`;
+    await transporter.sendMail({
+      from: `"MV Fotografia - Site" <${process.env.EMAIL_USER}>`,
+      to: process.env.EMAIL_TO,
+      subject: `💍 Novo orçamento: ${nome} — ${pacote||'Pacote não informado'}`,
+      html,
+      replyTo: tel
+    });
+    res.json({ ok: true, message: 'Mensagem enviada! Retorno em até 24 horas.' });
+  } catch (err) {
+    console.error('Email error:', err);
+    res.json({ ok: true, message: 'Mensagem recebida! Retorno em até 24 horas.' });
+  }
+});
 
-async function initAdmin(){
-  document.getElementById('login-screen').classList.add('hide');
-  await loadData();
-  populateAll();
-}
+app.post('/api/admin/login', adminLimit, (req, res) => {
+  if (req.body.password === process.env.ADMIN_PASSWORD) {
+    res.json({ ok: true, token: process.env.ADMIN_PASSWORD });
+  } else {
+    res.status(401).json({ error: 'Senha incorreta.' });
+  }
+});
 
-if(token) initAdmin();
-
-// ── DATA ─────────────────────────────────────────────────────
-async function loadData(){
-  const r = await fetch('/api/site');
-  siteData = await r.json();
-}
-
-async function saveAll(){
-  const btn = document.querySelector('.main-head .btn-gold');
-  btn.textContent = 'Salvando...'; btn.disabled=true;
-  collectAll();
+app.post('/api/admin/save', adminAuth, (req, res) => {
   try {
-    const r = await fetch('/api/admin/save',{method:'POST',headers:{'Content-Type':'application/json','x-admin-token':token},body:JSON.stringify(siteData)});
-    const d = await r.json();
-    if(d.ok){ toast('✓ Salvo com sucesso!'); document.getElementById('save-status').textContent = 'Salvo — ' + new Date().toLocaleTimeString('pt-BR'); }
-    else toast('Erro ao salvar', true);
-  } catch(e){ toast('Erro de conexão', true); }
-  btn.innerHTML='💾 Salvar tudo'; btn.disabled=false;
-}
-
-function collectAll(){
-  // Hero
-  if(!siteData.hero) siteData.hero = {};
-  siteData.hero.pre = v('h-pre');
-  siteData.hero.title = v('h-title');
-  siteData.hero.desc = v('h-desc');
-  siteData.hero.badge_num = v('h-num');
-  siteData.hero.badge_txt = v('h-badge');
-
-  // About
-  if(!siteData.about) siteData.about = {};
-  siteData.about.tag = v('a-tag');
-  siteData.about.p1 = v('a-p1');
-  siteData.about.p2 = v('a-p2');
-  siteData.about.stats = collectStats();
-
-  // Contact
-  if(!siteData.contact) siteData.contact = {};
-  siteData.contact.local = v('c-local');
-  siteData.contact.wpp_link = v('c-wpp-link');
-  siteData.contact.wpp_display = v('c-wpp-display');
-  siteData.contact.email = v('c-email');
-  siteData.contact.instagram = v('c-insta');
-  siteData.contact.youtube = v('c-yt');
-  siteData.contact.desc = v('c-desc');
-}
-
-// ── POPULATE ─────────────────────────────────────────────────
-function populateAll(){
-  const h = siteData.hero || {};
-  set('h-pre', h.pre); set('h-title', h.title); set('h-desc', h.desc);
-  set('h-num', h.badge_num); set('h-badge', h.badge_txt);
-  const hp = document.getElementById('hero-prev');
-  if(hp && h.bg_image) hp.src = h.bg_image;
-
-  const a = siteData.about || {};
-  set('a-tag', a.tag); set('a-p1', a.p1); set('a-p2', a.p2);
-  const ap = document.getElementById('about-prev');
-  if(ap && a.image) ap.src = a.image;
-  renderStatsFields(a.stats || []);
-
-  renderGalleryTabs();
-  renderCurrentGallery();
-  renderServicesFields();
-  renderPricingFields();
-  renderTestiFields();
-
-  const c = siteData.contact || {};
-  set('c-local', c.local); set('c-wpp-link', c.wpp_link); set('c-wpp-display', c.wpp_display);
-  set('c-email', c.email); set('c-insta', c.instagram); set('c-yt', c.youtube);
-  set('c-desc', c.desc);
-}
-
-function v(id){ const el=document.getElementById(id); return el ? el.value : ''; }
-function set(id, val){ const el=document.getElementById(id); if(el && val!==undefined) el.value = val; }
-
-// ── STATS ────────────────────────────────────────────────────
-function renderStatsFields(stats){
-  const c = document.getElementById('stats-fields');
-  c.innerHTML = stats.map((s,i)=>`
-    <div class="grid-2" style="margin-bottom:10px" id="stat-row-${i}">
-      <div class="field"><label>Valor ${i+1}</label><input type="text" id="sn-${i}" value="${s.n||''}"></div>
-      <div class="field"><label style="display:flex;justify-content:space-between">Label ${i+1} <span style="color:var(--red);cursor:pointer;font-weight:400" onclick="removeStat(${i})">✕</span></label><input type="text" id="sl-${i}" value="${s.l||''}"></div>
-    </div>`).join('');
-}
-function collectStats(){
-  const stats = [];
-  let i=0;
-  while(document.getElementById('sn-'+i)){
-    stats.push({n:v('sn-'+i), l:v('sl-'+i)});
-    i++;
-  }
-  return stats;
-}
-function addStat(){
-  const stats = collectStats();
-  stats.push({n:'',l:''});
-  renderStatsFields(stats);
-}
-function removeStat(i){
-  const stats = collectStats();
-  stats.splice(i,1);
-  renderStatsFields(stats);
-}
-
-// ── GALLERY ──────────────────────────────────────────────────
-function renderGalleryTabs(){
-  const tabs = document.getElementById('gal-tabs');
-  const gals = siteData.galleries || [];
-  tabs.innerHTML = gals.map((g,i)=>
-    `<button class="gal-tab${i===currentGal?' on':''}" onclick="switchGal(${i})">${g.name}</button>`
-  ).join('');
-}
-
-function switchGal(i){
-  currentGal = i;
-  renderGalleryTabs();
-  renderCurrentGallery();
-}
-
-function renderCurrentGallery(){
-  const gals = siteData.galleries || [];
-  const gal = gals[currentGal];
-  const c = document.getElementById('gal-content');
-  if(!gal){ c.innerHTML=''; return; }
-  const photos = gal.photos || [];
-  c.innerHTML = `<div class="photo-grid" id="photo-grid">${
-    photos.map((p,i)=>`
-      <div class="photo-card" draggable="true" data-idx="${i}"
-        ondragstart="dragStart(event,${i})" ondragover="dragOver(event,${i})"
-        ondrop="dragDrop(event,${i})" ondragleave="dragLeave(event)">
-        <img src="${p.file}" alt="${p.title}" loading="lazy">
-        <button class="photo-del" onclick="deletePhoto(${i})">✕</button>
-        <div class="photo-card-body">
-          <input class="photo-card-input" value="${p.title}" onchange="updatePhotoTitle(${i},this.value)" placeholder="Título">
-        </div>
-      </div>`).join('')
-  }</div>`;
-  const nameInput = document.getElementById('gal-name-input');
-  if(!nameInput){
-    const ni = document.createElement('div');
-    ni.className='field';ni.style.marginBottom='12px';
-    ni.innerHTML=`<label>Nome desta galeria</label><input id="gal-name-input" type="text" value="${gal.name}" onchange="siteData.galleries[${currentGal}].name=this.value;renderGalleryTabs()">`;
-    c.prepend(ni);
-  }
-}
-
-// Drag & Drop
-let dragIdx = null;
-function dragStart(e, i){ dragIdx=i; setTimeout(()=>e.target.classList.add('dragging'),0); }
-function dragOver(e, i){ e.preventDefault(); document.querySelectorAll('.photo-card').forEach(c=>c.classList.remove('drag-over')); document.querySelector(`.photo-card[data-idx="${i}"]`)?.classList.add('drag-over'); }
-function dragLeave(e){ e.target.closest('.photo-card')?.classList.remove('drag-over'); }
-function dragDrop(e, targetIdx){
-  e.preventDefault();
-  const gal = siteData.galleries[currentGal];
-  const photos = gal.photos;
-  const moved = photos.splice(dragIdx,1)[0];
-  photos.splice(targetIdx,0,moved);
-  document.querySelectorAll('.photo-card').forEach(c=>c.classList.remove('dragging','drag-over'));
-  renderCurrentGallery();
-}
-
-function updatePhotoTitle(i, val){ siteData.galleries[currentGal].photos[i].title = val; }
-
-function deletePhoto(i){
-  if(!confirm('Remover esta foto?')) return;
-  siteData.galleries[currentGal].photos.splice(i,1);
-  renderCurrentGallery();
-  toast('Foto removida. Salve para confirmar.');
-}
-
-function triggerUpload(){ document.getElementById('gal-upload').click(); }
-
-async function handleGalUpload(input){
-  const files = Array.from(input.files);
-  for(const file of files){
-    const fd = new FormData();
-    fd.append('photo', file);
-    try {
-      const r = await fetch('/api/admin/upload',{method:'POST',headers:{'x-admin-token':token},body:fd});
-      const d = await r.json();
-      if(d.ok){
-        siteData.galleries[currentGal].photos.push({file:d.url, title:file.name.replace(/\.[^.]+$/,'').replace(/_/g,' '), cat: siteData.galleries[currentGal].id});
-        renderCurrentGallery();
-        toast('Foto adicionada!');
-      }
-    } catch(e){ toast('Erro no upload: '+file.name, true); }
-  }
-  input.value='';
-}
-
-async function uploadHero(input){
-  const fd = new FormData();
-  fd.append('photo', input.files[0]);
-  const r = await fetch('/api/admin/upload',{method:'POST',headers:{'x-admin-token':token},body:fd});
-  const d = await r.json();
-  if(d.ok){ siteData.hero.bg_image=d.url; document.getElementById('hero-prev').src=d.url; toast('Foto do hero atualizada!'); }
-}
-
-async function uploadAbout(input){
-  const fd = new FormData();
-  fd.append('photo', input.files[0]);
-  const r = await fetch('/api/admin/upload',{method:'POST',headers:{'x-admin-token':token},body:fd});
-  const d = await r.json();
-  if(d.ok){ siteData.about.image=d.url; document.getElementById('about-prev').src=d.url; toast('Foto do sobre atualizada!'); }
-}
-
-function addGallery(){
-  const name = document.getElementById('new-gal-name').value.trim();
-  if(!name) return toast('Digite o nome da galeria',true);
-  const id = name.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
-  siteData.galleries.push({id, name, photos:[]});
-  currentGal = siteData.galleries.length-1;
-  document.getElementById('new-gal-name').value='';
-  renderGalleryTabs();
-  renderCurrentGallery();
-  toast('Galeria "'+name+'" criada!');
-}
-
-function deleteCurrentGallery(){
-  if(!confirm('Deletar galeria "'+siteData.galleries[currentGal].name+'" e todas as suas fotos?')) return;
-  siteData.galleries.splice(currentGal,1);
-  currentGal = Math.max(0, currentGal-1);
-  renderGalleryTabs();
-  renderCurrentGallery();
-  toast('Galeria removida. Salve para confirmar.');
-}
-
-// ── SERVICES ─────────────────────────────────────────────────
-function renderServicesFields(){
-  const c = document.getElementById('srv-fields');
-  const svs = siteData.services || [];
-  c.innerHTML = svs.map((s,i)=>`
-    <div class="card" id="srv-${i}">
-      <h3 style="display:flex;justify-content:space-between;align-items:center">${s.name} <button class="btn btn-red btn-sm" onclick="removeService(${i})">✕ Remover</button></h3>
-      <div class="grid-2">
-        <div class="field"><label>Número</label><input id="s${i}-num" type="text" value="${s.num||''}"></div>
-        <div class="field"><label>Nome</label><input id="s${i}-name" type="text" value="${s.name||''}"></div>
-      </div>
-      <div class="field"><label>Descrição</label><textarea id="s${i}-desc">${s.desc||''}</textarea></div>
-      <div class="field"><label>Itens incluídos (um por linha)</label><textarea id="s${i}-items" style="min-height:120px">${(s.items||[]).join('\n')}</textarea></div>
-    </div>`).join('');
-}
-function collectServices(){
-  const svs = [];
-  let i=0;
-  while(document.getElementById('srv-'+i)){
-    svs.push({num:v(`s${i}-num`),name:v(`s${i}-name`),desc:v(`s${i}-desc`),items:v(`s${i}-items`).split('\n').filter(x=>x.trim())});
-    i++;
-  }
-  return svs;
-}
-function addService(){
-  siteData.services = collectServices();
-  siteData.services.push({num:`0${siteData.services.length+1}`,name:'Novo Serviço',desc:'',items:[]});
-  renderServicesFields();
-}
-function removeService(i){
-  siteData.services = collectServices();
-  siteData.services.splice(i,1);
-  renderServicesFields();
-}
-
-// ── PRICING ──────────────────────────────────────────────────
-function renderPricingFields(){
-  const c = document.getElementById('pkg-fields');
-  const pkgs = siteData.packages || [];
-  c.innerHTML = pkgs.map((p,i)=>`
-    <div class="pkg-admin-card" id="pkg-${i}">
-      <h4 style="justify-content:space-between;display:flex">${p.name} <button class="btn btn-red btn-sm" onclick="removePkg(${i})">✕</button></h4>
-      <div class="grid-3">
-        <div class="field"><label>Nome</label><input id="p${i}-name" type="text" value="${p.name||''}"></div>
-        <div class="field"><label>Valor (R$)</label><input id="p${i}-val" type="text" value="${p.value||''}"></div>
-        <div class="field"><label>Período / Descrição</label><input id="p${i}-per" type="text" value="${p.period||''}"></div>
-      </div>
-      <label class="feat-toggle"><input type="checkbox" id="p${i}-feat" ${p.featured?'checked':''}> Destacar como "mais escolhido"</label>
-      <div class="pkg-items-list" id="pi-${i}">
-        <div class="field" style="margin-top:14px"><label>Itens do pacote</label></div>
-        ${(p.items||[]).map((it,j)=>`
-          <div class="pkg-item-row" id="pit-${i}-${j}">
-            <input type="checkbox" ${it.active?'checked':''} id="pic-${i}-${j}">
-            <input type="text" id="pit-v-${i}-${j}" value="${it.text||''}">
-            <button class="btn btn-red btn-sm" onclick="removePkgItem(${i},${j})">✕</button>
-          </div>`).join('')}
-      </div>
-      <button class="btn btn-outline btn-sm" style="margin-top:10px" onclick="addPkgItem(${i})">+ Item</button>
-    </div>`).join('');
-}
-function collectPkgs(){
-  const pkgs=[];
-  let i=0;
-  while(document.getElementById('pkg-'+i)){
-    const items=[];
-    let j=0;
-    while(document.getElementById(`pit-${i}-${j}`)){
-      items.push({text:v(`pit-v-${i}-${j}`),active:document.getElementById(`pic-${i}-${j}`)?.checked});
-      j++;
+    const current = readData();
+    const updated = { ...current, ...req.body };
+    if (updated.heroPhotos?.length) {
+      updated.hero.bg_image = updated.heroPhotos[0];
     }
-    pkgs.push({id:`p${i+1}`,name:v(`p${i}-name`),value:v(`p${i}-val`),period:v(`p${i}-per`),featured:document.getElementById(`p${i}-feat`)?.checked,items});
-    i++;
+    writeData(updated);
+    res.json({ ok: true });
+  } catch (e) {
+    res.status(500).json({ error: 'Erro ao salvar.' });
   }
-  return pkgs;
-}
-function addPackage(){
-  siteData.packages = collectPkgs();
-  siteData.packages.push({id:`p${siteData.packages.length+1}`,name:'Novo Pacote',value:'',period:'',featured:false,items:[]});
-  renderPricingFields();
-}
-function removePkg(i){ siteData.packages=collectPkgs(); siteData.packages.splice(i,1); renderPricingFields(); }
-function addPkgItem(i){ siteData.packages=collectPkgs(); siteData.packages[i].items.push({text:'',active:true}); renderPricingFields(); }
-function removePkgItem(i,j){ siteData.packages=collectPkgs(); siteData.packages[i].items.splice(j,1); renderPricingFields(); }
+});
 
-// ── TESTIMONIALS ──────────────────────────────────────────────
-function renderTestiFields(){
-  const c = document.getElementById('testi-fields');
-  const ts = siteData.testimonials || [];
-  c.innerHTML = ts.map((t,i)=>`
-    <div class="testi-card" id="tst-${i}">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-        <span style="font-size:11px;color:var(--gold);letter-spacing:1px">Depoimento ${i+1}</span>
-        <button class="btn btn-red btn-sm" onclick="removeTesti(${i})">✕ Remover</button>
-      </div>
-      <div class="grid-2">
-        <div class="field"><label>Nome do casal</label><input id="t${i}-name" type="text" value="${t.name||''}"></div>
-        <div class="field"><label>Data e local</label><input id="t${i}-date" type="text" value="${t.date||''}"></div>
-      </div>
-      <div class="field"><label>Depoimento</label><textarea id="t${i}-text">${t.text||''}</textarea></div>
-    </div>`).join('');
-}
-function collectTestis(){
-  const ts=[]; let i=0;
-  while(document.getElementById('tst-'+i)){ ts.push({name:v(`t${i}-name`),date:v(`t${i}-date`),text:v(`t${i}-text`)}); i++; }
-  return ts;
-}
-function addTestimonial(){
-  siteData.testimonials=collectTestis();
-  siteData.testimonials.push({name:'',date:'',text:''});
-  renderTestiFields();
-}
-function removeTesti(i){ siteData.testimonials=collectTestis(); siteData.testimonials.splice(i,1); renderTestiFields(); }
+app.post('/api/admin/upload', adminAuth, upload.single('photo'), (req, res) => {
+  if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+  res.json({ ok: true, url: `/uploads/${req.file.filename}` });
+});
 
-// ── TABS ──────────────────────────────────────────────────────
-const tabTitles = {hero:'Hero & Início',about:'Sobre',gallery:'Galerias & Fotos',services:'Serviços',pricing:'Pacotes & Preços',testimonials:'Depoimentos',contact:'Contato & Redes'};
-function showTab(name){
-  // collect before switch so data isn't lost
-  if(siteData.services) siteData.services = collectServices();
-  if(siteData.packages) siteData.packages = collectPkgs();
-  if(siteData.testimonials) siteData.testimonials = collectTestis();
-  if(siteData.about) siteData.about.stats = collectStats();
+app.delete('/api/admin/photo', adminAuth, (req, res) => {
+  const { url } = req.body;
+  if (!url || !url.startsWith('/uploads/')) return res.status(400).json({ error: 'URL inválida.' });
+  const filePath = path.join(__dirname, 'public', url);
+  if (fs.existsSync(filePath)) fs.unlinkSync(filePath);
+  res.json({ ok: true });
+});
 
-  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('on'));
-  document.getElementById('tab-'+name).classList.add('on');
-  document.querySelectorAll('.sb-item').forEach(i=>i.classList.remove('on'));
-  event.currentTarget.classList.add('on');
-  document.getElementById('tab-title').textContent = tabTitles[name]||name;
-}
-
-// ── TOAST ─────────────────────────────────────────────────────
-function toast(msg, isErr=false){
-  const t=document.getElementById('toast');
-  t.textContent=msg;
-  t.className='show'+(isErr?' err':'');
-  setTimeout(()=>t.className='',2500);
-}
-
-// Mark changes
-document.addEventListener('input', ()=>{ document.getElementById('save-status').textContent='Alterações não salvas — clique em Salvar'; });
-</script>
-</body>
-</html>
+app.listen(PORT, () => {
+  console.log(`\n🎯 MV Fotografia rodando em http://localhost:${PORT}`);
+  console.log(`📸 Admin em http://localhost:${PORT}/admin\n`);
+});
